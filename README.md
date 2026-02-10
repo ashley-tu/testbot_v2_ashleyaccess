@@ -69,3 +69,23 @@ pnpm dev
 ```
 
 Your app template should now be running on [localhost:3000](http://localhost:3000).
+
+### Chat not responding?
+
+If you send a message and the chatbot never answers (or you see an error toast), check:
+
+1. **`AI_GATEWAY_API_KEY` in `.env.local`**  
+   Required when running locally (non-Vercel). Without it, the chat API cannot call the AI. Create a key at [Vercel AI Gateway](https://vercel.com/ai-gateway) and add:
+   ```bash
+   AI_GATEWAY_API_KEY=your_key_here
+   ```
+   Alternatively, use `vercel env pull` after `vercel link` to pull env vars from a linked Vercel project.
+
+2. **You are signed in**  
+   Use "Continue as guest" or sign in. The chat API returns 401 if there is no session.
+
+3. **Database and Redis (optional)**  
+   `POSTGRES_URL` is required for saving chats and messages. `REDIS_URL` is optional (used for stream resumption). If the DB is missing or wrong, chat requests can fail.
+
+4. **Browser / Network**  
+   A 404 on `/api/chat` (e.g. due to proxy errors) or network issues will prevent replies. Check the terminal and browser Network tab for failed requests to `/api/chat`.
