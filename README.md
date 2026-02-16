@@ -89,3 +89,23 @@ Your app template should now be running on [localhost:3000](http://localhost:300
 5. **Credit card on Vercel** – The AI Gateway may require a payment method on your Vercel account. If you see an error about a valid credit card, add one in Vercel billing.
 
 After fixing the above, try sending a message again. If it still fails, check the browser dev tools **Network** tab for the `/api/chat` request and the **Console** for errors; the app will also show a toast with the error message when possible.
+
+### Testing for stuck or incomplete responses
+
+If the model seems to hang (no reply or reply never “completes”):
+
+1. **Run the stream E2E tests** to see where it gets stuck:
+   ```bash
+   pnpm test tests/e2e/api.test.ts
+   ```
+   - **"first assistant content arrives within timeout"** – Fails if no assistant text appears within 20s (stuck before/during first token).
+   - **"stream completes and stop button disappears within timeout"** – Fails if the stream never finishes (e.g. title generation or provider never closing the stream).
+
+2. **Interpret results:**
+   - First test fails → Likely provider/network, RAG, or auth; check Network tab and server logs.
+   - Second test fails but first passes → Stream not closing; often **title generation** (now limited to 10s) or the model not sending a final token. Check server logs and `generateTitleFromUserMessage` / `getTitleModel()`.
+
+3. **Run a single test** for quicker iteration:
+   ```bash
+   pnpm test tests/e2e/api.test.ts -g "stream completes"
+   ```
