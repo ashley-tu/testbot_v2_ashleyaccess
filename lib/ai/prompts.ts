@@ -59,21 +59,27 @@ About the origin of user's request:
 export const systemPrompt = ({
   selectedChatModel,
   requestHints,
+  ragContext,
 }: {
   selectedChatModel: string;
   requestHints: RequestHints;
+  ragContext?: string;
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
+  const ragBlock =
+    ragContext && ragContext.length > 0
+      ? `\n\n${ragContext}\n\nAnswer using the above context when relevant; otherwise use your general knowledge.`
+      : "";
 
   // reasoning models don't need artifacts prompt (they can't use tools)
   if (
     selectedChatModel.includes("reasoning") ||
     selectedChatModel.includes("thinking")
   ) {
-    return `${regularPrompt}\n\n${requestPrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}${ragBlock}`;
   }
 
-  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
+  return `${regularPrompt}\n\n${requestPrompt}${ragBlock}\n\n${artifactsPrompt}`;
 };
 
 export const codePrompt = `

@@ -69,3 +69,23 @@ pnpm dev
 ```
 
 Your app template should now be running on [localhost:3000](http://localhost:3000).
+
+### No response when you send a message?
+
+1. **Sign in** – The chat API requires an authenticated user. Use the app’s sign-in (e.g. credentials or your auth provider). If you’re not logged in, the request returns 401 and you get no reply.
+
+2. **AI Gateway (local dev)** – When running **locally** (not on Vercel), the app needs an AI Gateway API key:
+   - Open [Vercel AI Gateway → API Keys](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai-gateway%2Fapi-keys) (or your team’s **AI Gateway** → **API Keys**).
+   - Create a key and add it to `.env.local`:
+   ```bash
+   AI_GATEWAY_API_KEY=your_key_here
+   ```
+   - Restart the dev server (`pnpm dev`) after changing env vars.
+
+3. **Vercel project linked** – To pull env vars (including the gateway key) from Vercel: `vercel link` then `vercel env pull`. Your `.env.local` will then include the keys from the project.
+
+4. **Database** – Chats and messages are stored in Postgres. Run `pnpm db:migrate` so the schema exists. If the DB URL is wrong or the DB is unreachable, the chat route can fail.
+
+5. **Credit card on Vercel** – The AI Gateway may require a payment method on your Vercel account. If you see an error about a valid credit card, add one in Vercel billing.
+
+After fixing the above, try sending a message again. If it still fails, check the browser dev tools **Network** tab for the `/api/chat` request and the **Console** for errors; the app will also show a toast with the error message when possible.

@@ -149,6 +149,13 @@ export function Chat({
             description: error.message,
           });
         }
+      } else {
+        const message =
+          error instanceof Error ? error.message : "Something went wrong";
+        toast({
+          type: "error",
+          description: message,
+        });
       }
     },
   });

@@ -12,6 +12,10 @@ import { createResumableStreamContext } from "resumable-stream";
 import { auth, type UserType } from "@/app/(auth)/auth";
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
 import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
+import {
+  formatRagContext,
+  searchRag,
+} from "@/lib/rag/search";
 import { getLanguageModel } from "@/lib/ai/providers";
 import { createDocument } from "@/lib/ai/tools/create-document";
 import { getWeather } from "@/lib/ai/tools/get-weather";
@@ -139,9 +143,33 @@ export async function POST(request: Request) {
     const stream = createUIMessageStream({
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
+        let ragContext = "";
+        const lastUserMessage = message?.role === "user" ? message : null;
+        if (lastUserMessage?.parts) {
+          const textParts = lastUserMessage.parts
+            .filter(
+              (p): p is { type: "text"; text: string } =>
+                typeof p === "object" &&
+                p !== null &&
+                "type" in p &&
+                (p as { type: string }).type === "text" &&
+                "text" in p
+            )
+            .map((p) => p.text);
+          const queryText = textParts.join(" ").trim();
+          if (queryText.length > 0) {
+            const chunks = await searchRag(queryText);
+            ragContext = formatRagContext(chunks);
+          }
+        }
+
         const result = streamText({
           model: getLanguageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: systemPrompt({
+            selectedChatModel,
+            requestHints,
+            ragContext: ragContext || undefined,
+          }),
           messages: modelMessages,
           stopWhen: stepCountIs(5),
           experimental_activeTools: isReasoningModel
