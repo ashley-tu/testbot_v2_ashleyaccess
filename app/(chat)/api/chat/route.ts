@@ -167,7 +167,7 @@ export async function POST(request: Request) {
             .map((p) => p.text);
           const queryText = textParts.join(" ").trim();
           if (queryText.length > 0) {
-            const RAG_TIMEOUT_MS = 8_000;
+            const RAG_TIMEOUT_MS = 20_000;
             let chunks: RagChunk[];
             let trace: RagTraceStep[] = [];
             if (ragDebug) {
@@ -192,14 +192,31 @@ export async function POST(request: Request) {
               ]);
             }
             ragContext = formatRagContext(chunks);
-            if (ragDebug && trace.length > 0) {
-              trace.push({
-                step: "context",
-                formattedLength: ragContext.length,
-                snippet:
-                  ragContext.slice(0, 200) + (ragContext.length > 200 ? "…" : ""),
+            if (ragDebug) {
+              const stepsToSend: RagTraceStep[] =
+                trace.length > 0
+                  ? [
+                      ...trace,
+                      {
+                        step: "context",
+                        formattedLength: ragContext.length,
+                        snippet:
+                          ragContext.slice(0, 200) +
+                          (ragContext.length > 200 ? "…" : ""),
+                      },
+                    ]
+                  : [
+                      { step: "query", query: queryText },
+                      {
+                        step: "config",
+                        message:
+                          "RAG timed out or returned no steps (check MONGODB_URI and VOYAGE_API_KEY).",
+                      },
+                    ];
+              dataStream.write({
+                type: "data-rag-debug",
+                data: { steps: stepsToSend },
               });
-              dataStream.write({ type: "data-rag-debug", data: { steps: trace } });
             }
           }
         }
