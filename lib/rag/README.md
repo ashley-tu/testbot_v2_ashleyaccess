@@ -12,6 +12,10 @@ The chatbot uses **Retrieval Augmented Generation (RAG)**: it searches your Mong
 
 You **create the vector index in MongoDB Atlas**. The app only runs queries against it and uses Voyage to embed the user’s question.
 
+### Seeing what the chatbot is doing (RAG trace)
+
+To see step-by-step how vector search runs for each message, set `RAG_DEBUG=1` in `.env.local` and restart the dev server. When you send a message, a **Vector search trace** panel appears above the input showing: (1) **Query** – text used for the search, (2) **Embedding** – dimensions from Voyage, (3) **Vector search** – numCandidates and limit, (4) **Retrieved chunks** – count, scores, and text previews, (5) **Context for model** – length and snippet injected into the system prompt. Use this to verify the right data is retrieved and passed to the model.
+
 ---
 
 ## 1. Create the vector index in MongoDB Atlas

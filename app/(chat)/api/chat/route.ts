@@ -12,9 +12,11 @@ import { createResumableStreamContext } from "resumable-stream";
 import { auth, type UserType } from "@/app/(auth)/auth";
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
 import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
+import type { RagTraceStep } from "@/lib/rag/trace";
 import {
   formatRagContext,
   searchRag,
+  searchRagWithTrace,
   type RagChunk,
 } from "@/lib/rag/search";
 import { getLanguageModel } from "@/lib/ai/providers";
@@ -145,6 +147,7 @@ export async function POST(request: Request) {
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
         let ragContext = "";
+        const ragDebug = process.env.RAG_DEBUG === "1";
         const lastUserMessage = message?.role === "user" ? message : null;
         if (lastUserMessage?.parts) {
           const textParts = lastUserMessage.parts
@@ -160,13 +163,39 @@ export async function POST(request: Request) {
           const queryText = textParts.join(" ").trim();
           if (queryText.length > 0) {
             const RAG_TIMEOUT_MS = 8_000;
-            const chunks = await Promise.race([
-              searchRag(queryText),
-              new Promise<RagChunk[]>((resolve) =>
-                setTimeout(() => resolve([]), RAG_TIMEOUT_MS)
-              ),
-            ]);
+            let chunks: RagChunk[];
+            let trace: RagTraceStep[] = [];
+            if (ragDebug) {
+              const result = await Promise.race([
+                searchRagWithTrace(queryText),
+                new Promise<{ chunks: RagChunk[]; trace: RagTraceStep[] }>(
+                  (resolve) =>
+                    setTimeout(
+                      () => resolve({ chunks: [], trace: [] }),
+                      RAG_TIMEOUT_MS
+                    )
+                ),
+              ]);
+              chunks = result.chunks;
+              trace = result.trace;
+            } else {
+              chunks = await Promise.race([
+                searchRag(queryText),
+                new Promise<RagChunk[]>((resolve) =>
+                  setTimeout(() => resolve([]), RAG_TIMEOUT_MS)
+                ),
+              ]);
+            }
             ragContext = formatRagContext(chunks);
+            if (ragDebug && trace.length > 0) {
+              trace.push({
+                step: "context",
+                formattedLength: ragContext.length,
+                snippet:
+                  ragContext.slice(0, 200) + (ragContext.length > 200 ? "…" : ""),
+              });
+              dataStream.write({ type: "data-rag-debug", data: { steps: trace } });
+            }
           }
         }
 

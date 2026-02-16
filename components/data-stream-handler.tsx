@@ -4,12 +4,13 @@ import { useEffect } from "react";
 import { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import { initialArtifactData, useArtifact } from "@/hooks/use-artifact";
+import type { RagTracePayload } from "@/lib/rag/trace";
 import { artifactDefinitions } from "./artifact";
 import { useDataStream } from "./data-stream-provider";
 import { getChatHistoryPaginationKey } from "./sidebar-history";
 
 export function DataStreamHandler() {
-  const { dataStream, setDataStream } = useDataStream();
+  const { dataStream, setDataStream, setRagTrace } = useDataStream();
   const { mutate } = useSWRConfig();
 
   const { artifact, setArtifact, setMetadata } = useArtifact();
@@ -26,6 +27,11 @@ export function DataStreamHandler() {
       // Handle chat title updates
       if (delta.type === "data-chat-title") {
         mutate(unstable_serialize(getChatHistoryPaginationKey));
+        continue;
+      }
+      // RAG debug trace (when RAG_DEBUG=1 on server)
+      if (delta.type === "data-rag-debug" && "data" in delta) {
+        setRagTrace(delta.data as RagTracePayload);
         continue;
       }
       const artifactDefinition = artifactDefinitions.find(
@@ -86,7 +92,7 @@ export function DataStreamHandler() {
         }
       });
     }
-  }, [dataStream, setArtifact, setMetadata, artifact, setDataStream, mutate]);
+  }, [dataStream, setArtifact, setMetadata, artifact, setDataStream, setRagTrace, mutate]);
 
   return null;
 }
