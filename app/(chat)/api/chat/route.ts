@@ -295,7 +295,7 @@ export async function POST(request: Request) {
       onError: () => "Oops, an error occurred!",
     });
 
-    return createUIMessageStreamResponse({
+    const response = createUIMessageStreamResponse({
       stream,
       async consumeSseStream({ stream: sseStream }) {
         if (!process.env.REDIS_URL) {
@@ -315,6 +315,13 @@ export async function POST(request: Request) {
           // ignore redis errors
         }
       },
+    });
+    const headers = new Headers(response.headers);
+    headers.set("X-RAG-Debug", ragDebug ? "1" : "0");
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
     });
   } catch (error) {
     const vercelId = request.headers.get("x-vercel-id");
