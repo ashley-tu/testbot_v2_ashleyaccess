@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { guestRegex, isDevelopmentEnvironment } from "./lib/constants";
 
-export async function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   /*
@@ -39,6 +39,8 @@ export async function proxy(request: NextRequest) {
 
   return NextResponse.next();
 }
+
+export { proxy };
 
 export const config = {
   matcher: [
