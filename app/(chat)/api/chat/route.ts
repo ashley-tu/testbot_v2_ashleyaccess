@@ -209,7 +209,13 @@ export async function POST(request: Request) {
         dataStream.merge(result.toUIMessageStream({ sendReasoning: true }));
 
         if (titlePromise) {
-          const title = await titlePromise;
+          const TITLE_TIMEOUT_MS = 10_000;
+          const title = await Promise.race([
+            titlePromise,
+            new Promise<string>((resolve) =>
+              setTimeout(() => resolve("New chat"), TITLE_TIMEOUT_MS)
+            ),
+          ]);
           dataStream.write({ type: "data-chat-title", data: title });
           updateChatTitleById({ chatId: id, title });
         }

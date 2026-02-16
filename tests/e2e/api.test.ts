@@ -52,6 +52,34 @@ test.describe("Chat API Integration", () => {
     const stopButton = page.getByTestId("stop-button");
     await expect(stopButton).toBeVisible({ timeout: 5000 });
   });
+
+  test("first assistant content arrives within timeout", async ({ page }) => {
+    await page.goto("/");
+    const input = page.getByTestId("multimodal-input");
+    await input.fill("Hello");
+    await page.getByTestId("send-button").click();
+
+    // If the model is stuck, no assistant content appears; fail fast
+    const assistantMessage = page.locator("[data-role='assistant']").first();
+    await expect(assistantMessage).toBeVisible({ timeout: 20_000 });
+    await expect(assistantMessage).not.toHaveText("", { timeout: 1000 });
+  });
+
+  test("stream completes and stop button disappears within timeout", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const input = page.getByTestId("multimodal-input");
+    await input.fill("Hi");
+    await page.getByTestId("send-button").click();
+
+    const stopButton = page.getByTestId("stop-button");
+    await expect(stopButton).toBeVisible({ timeout: 10_000 });
+
+    // Stream should finish; stop button disappears and send button is back
+    await expect(stopButton).toBeHidden({ timeout: 25_000 });
+    await expect(page.getByTestId("send-button")).toBeVisible();
+  });
 });
 
 test.describe("Chat Error Handling", () => {
