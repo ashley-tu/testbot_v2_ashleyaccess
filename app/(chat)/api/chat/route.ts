@@ -15,6 +15,7 @@ import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
 import {
   formatRagContext,
   searchRag,
+  type RagChunk,
 } from "@/lib/rag/search";
 import { getLanguageModel } from "@/lib/ai/providers";
 import { createDocument } from "@/lib/ai/tools/create-document";
@@ -158,7 +159,13 @@ export async function POST(request: Request) {
             .map((p) => p.text);
           const queryText = textParts.join(" ").trim();
           if (queryText.length > 0) {
-            const chunks = await searchRag(queryText);
+            const RAG_TIMEOUT_MS = 8_000;
+            const chunks = await Promise.race([
+              searchRag(queryText),
+              new Promise<RagChunk[]>((resolve) =>
+                setTimeout(() => resolve([]), RAG_TIMEOUT_MS)
+              ),
+            ]);
             ragContext = formatRagContext(chunks);
           }
         }
