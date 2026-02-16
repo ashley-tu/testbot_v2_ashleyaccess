@@ -7,6 +7,7 @@ import {
   stepCountIs,
   streamText,
 } from "ai";
+import { cookies } from "next/headers";
 import { after } from "next/server";
 import { createResumableStreamContext } from "resumable-stream";
 import { auth, type UserType } from "@/app/(auth)/auth";
@@ -122,6 +123,11 @@ export async function POST(request: Request) {
       country,
     };
 
+    const cookieStore = await cookies();
+    const ragDebug =
+      process.env.RAG_DEBUG === "1" ||
+      cookieStore.get("rag_debug")?.value === "1";
+
     if (message?.role === "user") {
       await saveMessages({
         messages: [
@@ -147,7 +153,6 @@ export async function POST(request: Request) {
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
         let ragContext = "";
-        const ragDebug = process.env.RAG_DEBUG === "1";
         const lastUserMessage = message?.role === "user" ? message : null;
         if (lastUserMessage?.parts) {
           const textParts = lastUserMessage.parts

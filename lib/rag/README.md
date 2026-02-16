@@ -14,7 +14,13 @@ You **create the vector index in MongoDB Atlas**. The app only runs queries agai
 
 ### Seeing what the chatbot is doing (RAG trace)
 
-To see step-by-step how vector search runs for each message, set `RAG_DEBUG=1` in `.env.local` and restart the dev server. When you send a message, a **Vector search trace** panel appears above the input showing: (1) **Query** – text used for the search, (2) **Embedding** – dimensions from Voyage, (3) **Vector search** – numCandidates and limit, (4) **Retrieved chunks** – count, scores, and text previews, (5) **Context for model** – length and snippet injected into the system prompt. Use this to verify the right data is retrieved and passed to the model.
+To see step-by-step how vector search runs for each message, enable RAG debug in one of these ways:
+
+- **Local:** Set `RAG_DEBUG=1` in `.env.local` and restart the dev server.
+- **Vercel (production):** Set `RAG_DEBUG=1` in the project’s Environment Variables, then **redeploy** (env vars only apply to new deployments).
+- **Live site without redeploy:** Set the cookie `rag_debug=1` in your browser (e.g. DevTools → Application → Cookies → add `rag_debug` with value `1` for your site). Send a message; the trace panel will appear for that request.
+
+When debug is on, a **Vector search trace** panel appears above the input showing: (1) **Query** – text used for the search, (2) **Embedding** – dimensions from Voyage, (3) **Vector search** – numCandidates and limit, (4) **Retrieved chunks** – count, scores, and text previews, (5) **Context for model** – length and snippet injected into the system prompt.
 
 ---
 
