@@ -94,18 +94,26 @@ After fixing the above, try sending a message again. If it still fails, check th
 
 If the model seems to hang (no reply or reply never “completes”):
 
-1. **Run the stream E2E tests** to see where it gets stuck:
+1. **Test the AI Gateway in isolation** (no auth, DB, or RAG):
+   ```bash
+   pnpm exec tsx scripts/test-chat-model.ts
+   ```
+   - Loads `AI_GATEWAY_API_KEY` from `.env.local`. If the script prints "First token received" and "Done", the gateway and model work; the hang is likely in the app (auth, DB, RAG, or stream handling).
+   - If the script times out or errors, fix the gateway (key, network, or model id) first.
+   - Optional: test another model with `CHAT_TEST_MODEL=anthropic/claude-haiku-4.5 pnpm exec tsx scripts/test-chat-model.ts`.
+
+2. **Run the stream E2E tests** to see where it gets stuck:
    ```bash
    pnpm test tests/e2e/api.test.ts
    ```
    - **"first assistant content arrives within timeout"** – Fails if no assistant text appears within 20s (stuck before/during first token).
    - **"stream completes and stop button disappears within timeout"** – Fails if the stream never finishes (e.g. title generation or provider never closing the stream).
 
-2. **Interpret results:**
+3. **Interpret results:**
    - First test fails → Likely provider/network, RAG, or auth; check Network tab and server logs.
    - Second test fails but first passes → Stream not closing; often **title generation** (now limited to 10s) or the model not sending a final token. Check server logs and `generateTitleFromUserMessage` / `getTitleModel()`.
 
-3. **Run a single test** for quicker iteration:
+4. **Run a single test** for quicker iteration:
    ```bash
    pnpm test tests/e2e/api.test.ts -g "stream completes"
    ```
