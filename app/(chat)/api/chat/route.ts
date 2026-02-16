@@ -206,11 +206,11 @@ export async function POST(request: Request) {
                       },
                     ]
                   : [
-                      { step: "query", query: queryText },
+                      { step: "query", query: queryText, elapsedMs: 0 },
                       {
-                        step: "config",
-                        message:
-                          "RAG timed out or returned no steps (check MONGODB_URI and VOYAGE_API_KEY).",
+                        step: "timeout",
+                        message: `RAG timed out after ${RAG_TIMEOUT_MS / 1000}s. Last completed step shows where it got stuck (embedding = Voyage; vector_search/chunks = MongoDB).`,
+                        elapsedMs: RAG_TIMEOUT_MS,
                       },
                     ];
               dataStream.write({

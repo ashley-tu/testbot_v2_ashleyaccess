@@ -8,6 +8,27 @@ import {
   CollapsibleTrigger,
 } from "./ui/collapsible";
 
+function TimingBadge({
+  elapsedMs,
+  durationMs,
+}: {
+  elapsedMs?: number;
+  durationMs?: number;
+}) {
+  if (elapsedMs == null && durationMs == null) return null;
+  return (
+    <span className="text-muted-foreground ml-2 font-mono text-xs">
+      {elapsedMs != null && <span title="Cumulative ms from start">{elapsedMs} ms</span>}
+      {elapsedMs != null && durationMs != null && " · "}
+      {durationMs != null && (
+        <span title="Time spent on this step">
+          {durationMs} ms this step
+        </span>
+      )}
+    </span>
+  );
+}
+
 function StepContent({ step }: { step: RagTraceStep }) {
   switch (step.step) {
     case "query":
@@ -23,7 +44,11 @@ function StepContent({ step }: { step: RagTraceStep }) {
         <p className="text-destructive text-sm">{step.message}</p>
       );
     case "embedding":
-      return <p className="text-muted-foreground text-sm">{step.dimensions} dimensions</p>;
+      return (
+        <p className="text-muted-foreground text-sm">
+          {step.dimensions} dimensions
+        </p>
+      );
     case "vector_search":
       return (
         <p className="text-muted-foreground text-sm">
@@ -59,6 +84,10 @@ function StepContent({ step }: { step: RagTraceStep }) {
           </pre>
         </div>
       );
+    case "timeout":
+      return (
+        <p className="text-destructive text-sm">{step.message}</p>
+      );
     default:
       return null;
   }
@@ -82,9 +111,25 @@ function stepLabel(step: RagTraceStep): string {
       return "Vector search error";
     case "context":
       return "5. Context for model";
+    case "timeout":
+      return "Timeout";
     default:
       return "Step";
   }
+}
+
+function getStepTiming(step: RagTraceStep): {
+  elapsedMs?: number;
+  durationMs?: number;
+} {
+  if ("elapsedMs" in step && typeof step.elapsedMs === "number") {
+    const durationMs =
+      "durationMs" in step && typeof step.durationMs === "number"
+        ? step.durationMs
+        : undefined;
+    return { elapsedMs: step.elapsedMs, durationMs };
+  }
+  return {};
 }
 
 export function RagTracePanel() {
@@ -116,12 +161,19 @@ export function RagTracePanel() {
       </div>
       <CollapsibleContent>
         <ol className="list-none space-y-3 border-t border-border/60 bg-muted/20 px-2 py-3 md:px-4">
-          {ragTrace.steps.map((step, i) => (
-            <li key={i} className="space-y-1">
-              <span className="font-medium text-sm">{stepLabel(step)}</span>
-              <StepContent step={step} />
-            </li>
-          ))}
+          {ragTrace.steps.map((step, i) => {
+            const timing = getStepTiming(step);
+            return (
+              <li key={i} className="space-y-1">
+                <span className="font-medium text-sm">{stepLabel(step)}</span>
+                <TimingBadge
+                  elapsedMs={timing.elapsedMs}
+                  durationMs={timing.durationMs}
+                />
+                <StepContent step={step} />
+              </li>
+            );
+          })}
         </ol>
       </CollapsibleContent>
     </Collapsible>

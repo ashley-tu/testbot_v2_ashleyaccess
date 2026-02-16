@@ -29,23 +29,36 @@ export async function searchRagWithTrace(query: string): Promise<{
   chunks: RagChunk[];
   trace: RagTraceStep[];
 }> {
+  const startMs = Date.now();
   const trace: RagTraceStep[] = [];
-  trace.push({ step: "query", query });
+  trace.push({ step: "query", query, elapsedMs: 0 });
 
   const uri = process.env.MONGODB_URI;
   if (!uri) {
-    trace.push({ step: "config", message: "MONGODB_URI is not set" });
+    trace.push({
+      step: "config",
+      message: "MONGODB_URI is not set",
+      elapsedMs: Date.now() - startMs,
+    });
     return { chunks: [], trace };
   }
 
   let queryVector: number[];
   try {
+    const embedStartMs = Date.now();
     queryVector = await embed(query, "query");
-    trace.push({ step: "embedding", dimensions: queryVector.length });
+    const embedEndMs = Date.now();
+    trace.push({
+      step: "embedding",
+      dimensions: queryVector.length,
+      elapsedMs: embedEndMs - startMs,
+      durationMs: embedEndMs - embedStartMs,
+    });
   } catch (err) {
     trace.push({
       step: "embed_error",
       message: err instanceof Error ? err.message : String(err),
+      elapsedMs: Date.now() - startMs,
     });
     return { chunks: [], trace };
   }
@@ -55,6 +68,7 @@ export async function searchRagWithTrace(query: string): Promise<{
     step: "vector_search",
     numCandidates,
     limit: RAG_TOP_K,
+    elapsedMs: Date.now() - startMs,
   });
 
   const client = new MongoClient(uri);
@@ -79,10 +93,12 @@ export async function searchRagWithTrace(query: string): Promise<{
       },
     ];
 
+    const mongoStartMs = Date.now();
     const cursor = coll.aggregate<{ [RAG_TEXT_FIELD]: string; score?: number }>(
       pipeline
     );
     const docs = await cursor.toArray();
+    const mongoEndMs = Date.now();
     const chunks: RagChunk[] = docs.map((d) => ({
       text: d[RAG_TEXT_FIELD] ?? "",
       score: d.score,
@@ -97,6 +113,8 @@ export async function searchRagWithTrace(query: string): Promise<{
           (c.text.length > PREVIEW_LEN ? "…" : ""),
         score: c.score,
       })),
+      elapsedMs: mongoEndMs - startMs,
+      durationMs: mongoEndMs - mongoStartMs,
     });
 
     return { chunks, trace };
@@ -104,6 +122,7 @@ export async function searchRagWithTrace(query: string): Promise<{
     trace.push({
       step: "vector_search_error",
       message: err instanceof Error ? err.message : String(err),
+      elapsedMs: Date.now() - startMs,
     });
     return { chunks: [], trace };
   } finally {
