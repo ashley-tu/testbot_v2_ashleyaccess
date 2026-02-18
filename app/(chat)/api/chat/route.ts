@@ -167,7 +167,7 @@ export async function POST(request: Request) {
             .map((p) => p.text);
           const queryText = textParts.join(" ").trim();
           if (queryText.length > 0) {
-            const RAG_TIMEOUT_MS = 20_000;
+            const RAG_TIMEOUT_MS = 35_000;
             let chunks: RagChunk[];
             let trace: RagTraceStep[] = [];
             if (ragDebug) {
@@ -211,6 +211,11 @@ export async function POST(request: Request) {
                         step: "timeout",
                         message: `RAG timed out after ${RAG_TIMEOUT_MS / 1000}s. Last completed step shows where it got stuck (embedding = Voyage; vector_search/chunks = MongoDB).`,
                         elapsedMs: RAG_TIMEOUT_MS,
+                      },
+                      {
+                        step: "timeout_diagnosis",
+                        message:
+                          "No step after Query completed before timeout → RAG timed out while the prompt was running through the embedding model (Voyage). Check VOYAGE_API_KEY, cold start, and network.",
                       },
                     ];
               dataStream.write({

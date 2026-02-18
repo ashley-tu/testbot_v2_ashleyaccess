@@ -88,6 +88,10 @@ function StepContent({ step }: { step: RagTraceStep }) {
       return (
         <p className="text-destructive text-sm">{step.message}</p>
       );
+    case "timeout_diagnosis":
+      return (
+        <p className="text-muted-foreground text-sm">{step.message}</p>
+      );
     default:
       return null;
   }
@@ -113,6 +117,8 @@ function stepLabel(step: RagTraceStep): string {
       return "5. Context for model";
     case "timeout":
       return "Timeout";
+    case "timeout_diagnosis":
+      return "Timeout during embedding?";
     default:
       return "Step";
   }

@@ -28,6 +28,7 @@ export type RagTraceStep =
       snippet: string;
       elapsedMs?: number;
     }
-  | { step: "timeout"; message: string; elapsedMs: number };
+  | { step: "timeout"; message: string; elapsedMs: number }
+  | { step: "timeout_diagnosis"; message: string };
 
 export type RagTracePayload = { steps: RagTraceStep[] };
