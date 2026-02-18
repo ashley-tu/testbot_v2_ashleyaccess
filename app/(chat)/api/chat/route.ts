@@ -229,7 +229,17 @@ export async function POST(request: Request) {
             ragContext: ragContext || undefined,
           }),
           messages: modelMessages,
+          /** Lower = more deterministic; higher = more varied/creative. 0–2 typical. */
+          temperature: 0.2,
+          /** Max tokens the model can generate in one reply. Caps length and cost. */
+          maxOutputTokens: 4096,
+          /** Penalizes repeating the same words/phrases. Reduces repetition. */
+          frequencyPenalty: 0.1,
+          /** Penalizes repeating topics already in the conversation. Encourages new angles. */
+          presencePenalty: 0.1,
+          /** Stop after this many tool-call rounds (avoids infinite tool loops). */
           stopWhen: stepCountIs(5),
+          /** Which tools the model can call. Reasoning models use none here (they use thinking instead). */
           experimental_activeTools: isReasoningModel
             ? []
             : [
@@ -238,6 +248,7 @@ export async function POST(request: Request) {
                 "updateDocument",
                 "requestSuggestions",
               ],
+          /** Provider-specific options (e.g. extended thinking budget for reasoning models). */
           providerOptions: isReasoningModel
             ? {
                 anthropic: {
@@ -245,12 +256,14 @@ export async function POST(request: Request) {
                 },
               }
             : undefined,
+          /** Tool implementations the model can invoke. */
           tools: {
             getWeather,
             createDocument: createDocument({ session, dataStream }),
             updateDocument: updateDocument({ session, dataStream }),
             requestSuggestions: requestSuggestions({ session, dataStream }),
           },
+          /** Enable telemetry in production for usage/observability. */
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
             functionId: "stream-text",
